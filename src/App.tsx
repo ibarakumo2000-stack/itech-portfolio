@@ -1,99 +1,95 @@
-import React, { useState, useEffect } from 'react';
-import { Navbar } from './components/layout/Navbar';
-import { Footer } from './components/layout/Footer';
-import { HomePage } from './pages/HomePage';
-import { AboutPage } from './pages/AboutPage';
-import { WhatIDoPage } from './pages/WhatIDoPage';
-import { ProjectsPage } from './pages/ProjectsPage';
-import { ProjectDetailPage } from './pages/ProjectDetailPage';
-import { SkillsPage } from './pages/SkillsPage';
-import { MusicPage } from './pages/MusicPage';
-import { JourneyPage } from './pages/JourneyPage';
-import { ServicesPage } from './pages/ServicesPage';
-import { ContactPage } from './pages/ContactPage';
+import React from 'react';
+import { AppProvider, useApp } from './context/AppContext';
+import { ToastContainer } from './components/common/ToastContainer';
+import { HeaderBanner } from './components/common/HeaderBanner';
+import { CustomerNavbar } from './components/customer/CustomerNavbar';
+import { CustomerFooter } from './components/common/CustomerFooter';
+import { LandingPages } from './components/customer/LandingPages';
+import { AuthPages } from './components/customer/AuthPages';
+import { ProductCatalog } from './components/customer/ProductCatalog';
+import { ProductDetailsPage } from './components/customer/ProductDetailsPage';
+import { CartAndCheckout } from './components/customer/CartAndCheckout';
+import { CustomerOrdersAndTracking } from './components/customer/CustomerOrdersAndTracking';
+import { CustomerAccountPages } from './components/customer/CustomerAccountPages';
+import { AdminDashboard } from './components/admin/AdminDashboard';
 
-export default function App() {
-  const getPathFromLocation = (): string => {
-    if (typeof window === 'undefined') return '/';
-    // Check hash first (e.g. #/about, #about)
-    const hash = window.location.hash.replace(/^#\/?/, '');
-    if (hash && hash !== '') {
-      return `/${hash}`;
-    }
-    const path = window.location.pathname;
-    return path && path.length > 0 ? path : '/';
-  };
-
-  const [currentPath, setCurrentPath] = useState<string>(getPathFromLocation);
-
-  useEffect(() => {
-    const handleLocationChange = () => {
-      const newPath = getPathFromLocation();
-      setCurrentPath(newPath);
-      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-    };
-
-    window.addEventListener('popstate', handleLocationChange);
-    window.addEventListener('hashchange', handleLocationChange);
-    return () => {
-      window.removeEventListener('popstate', handleLocationChange);
-      window.removeEventListener('hashchange', handleLocationChange);
-    };
-  }, []);
-
-  const navigateTo = (path: string) => {
-    const cleanPath = path.startsWith('/') ? path : `/${path}`;
-    
-    // Update browser URL and state
-    if (typeof window !== 'undefined') {
-      window.history.pushState({}, '', cleanPath);
-    }
-    setCurrentPath(cleanPath);
-    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-  };
-
-  const renderPage = () => {
-    // Check if it is a project case study route: /projects/:slug
-    if (currentPath.startsWith('/projects/')) {
-      const slug = currentPath.replace('/projects/', '').replace(/\/$/, '');
-      return <ProjectDetailPage slug={slug} onNavigate={navigateTo} />;
-    }
-
-    switch (currentPath) {
-      case '/about':
-        return <AboutPage onNavigate={navigateTo} />;
-      case '/what-i-do':
-        return <WhatIDoPage onNavigate={navigateTo} />;
-      case '/projects':
-        return <ProjectsPage onNavigate={navigateTo} />;
-      case '/skills':
-        return <SkillsPage onNavigate={navigateTo} />;
-      case '/music':
-        return <MusicPage onNavigate={navigateTo} />;
-      case '/journey':
-        return <JourneyPage onNavigate={navigateTo} />;
-      case '/services':
-        return <ServicesPage onNavigate={navigateTo} />;
-      case '/contact':
-        return <ContactPage onNavigate={navigateTo} />;
-      case '/':
-      default:
-        return <HomePage onNavigate={navigateTo} />;
-    }
-  };
+const AppContent: React.FC = () => {
+  const { portalMode, customerPage } = useApp();
 
   return (
-    <div className="min-h-screen bg-[#08090d] text-slate-100 selection:bg-cyan-500/30 selection:text-cyan-200 flex flex-col font-sans">
-      {/* Primary Sticky Multi-Page Navbar */}
-      <Navbar currentPath={currentPath} onNavigate={navigateTo} />
+    <div className="min-h-screen flex flex-col bg-slate-100 text-slate-900 font-sans antialiased selection:bg-indigo-600 selection:text-white">
+      {/* Global Toast Notification System */}
+      <ToastContainer />
 
-      {/* Dynamic Page Router Container */}
-      <main className="flex-grow pt-20 sm:pt-24 min-h-[calc(100vh-320px)]">
-        {renderPage()}
-      </main>
+      {/* Global Portal Switcher Banner */}
+      <HeaderBanner />
 
-      {/* Primary Footer with Page Links */}
-      <Footer onNavigate={navigateTo} />
+      {/* RENDER VIEW ACCORDING TO ACTIVE PORTAL */}
+      {portalMode === 'admin' || portalMode === 'delivery' || portalMode === 'architecture' ? (
+        <AdminDashboard />
+      ) : (
+        /* CUSTOMER STOREFRONT & PORTAL */
+        <div className="flex-1 flex flex-col">
+          <CustomerNavbar />
+
+          <main className="flex-1">
+            {/* 1. Landing Pages */}
+            {customerPage.startsWith('landing-') && (
+              <LandingPages activeLandingPage={customerPage} />
+            )}
+
+            {/* 2. Authentication Pages */}
+            {customerPage.startsWith('auth-') && (
+              <AuthPages activeAuthPage={customerPage} />
+            )}
+
+            {/* 3. Product Catalog Storefront */}
+            {(customerPage === 'cust-home' ||
+              customerPage === 'cust-products' ||
+              customerPage === 'cust-categories') && (
+              <ProductCatalog />
+            )}
+
+            {/* 4. Product Details */}
+            {customerPage === 'cust-product-details' && <ProductDetailsPage />}
+
+            {/* 5. Cart and Checkout */}
+            {customerPage === 'cust-cart' && <CartAndCheckout isCheckoutMode={false} />}
+            {customerPage === 'cust-checkout' && <CartAndCheckout isCheckoutMode={true} />}
+
+            {/* 6. Orders and Delivery Status */}
+            {(customerPage === 'cust-orders' || customerPage === 'cust-live-tracking') && (
+              <CustomerOrdersAndTracking isLiveTrackingMode={false} />
+            )}
+
+            {/* 7. Account Management & Subpages */}
+            {(customerPage === 'cust-wishlist' ||
+              customerPage === 'cust-compare' ||
+              customerPage === 'cust-profile' ||
+              customerPage === 'cust-wallet' ||
+              customerPage === 'cust-addresses' ||
+              customerPage === 'cust-notifications' ||
+              customerPage === 'cust-referrals' ||
+              customerPage === 'cust-coupons' ||
+              customerPage === 'cust-saved-cards' ||
+              customerPage === 'cust-invoices' ||
+              customerPage === 'cust-settings' ||
+              customerPage === 'cust-support') && (
+              <CustomerAccountPages activeAccountPage={customerPage} />
+            )}
+          </main>
+
+          <CustomerFooter />
+        </div>
+      )}
     </div>
+  );
+};
+
+export default function App() {
+  return (
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
   );
 }

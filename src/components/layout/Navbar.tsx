@@ -62,9 +62,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath = '/', onNavigate })
             <span className="text-base sm:text-lg font-extrabold tracking-widest text-white group-hover:text-cyan-400 transition-colors font-display">
               IBARAKUMO OWONARO
             </span>
-            <span className="text-[10px] tracking-widest uppercase font-mono text-cyan-400 -mt-0.5">
-              CREATIVE TECHNOLOGIST
-            </span>
           </button>
 
           {/* Desktop Navigation Links */}

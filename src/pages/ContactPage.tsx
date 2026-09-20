@@ -11,6 +11,7 @@ import {
   generateWhatsAppMessage,
   getGeneralWhatsAppUrl,
   generateMailtoUrl,
+  generateGmailWebUrl,
   sendContactEmail
 } from '../lib/contact';
 import {
@@ -95,26 +96,41 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
   };
 
   // Option 2: Direct silent background Email submission flow
-  const handleEmailSubmit = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    const validation = validateContactForm(formData);
-
-    if (!validation.isValid) {
-      setErrors(validation.errors as { [key: string]: string });
-      return;
+  const handleEmailSubmit = async (e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
+    try {
+      const validation = validateContactForm(formData);
 
-    setIsSendingEmail(true);
-    setErrors({});
-    setEmailError(null);
+      if (!validation.isValid) {
+        setErrors(validation.errors as { [key: string]: string });
+        return;
+      }
 
-    const result = await sendContactEmail(formData);
-    setIsSendingEmail(false);
+      setIsSendingEmail(true);
+      setErrors({});
+      setEmailError(null);
 
-    if (result.success) {
-      setEmailSuccess(true);
-    } else {
-      setEmailError(result.error || 'Something went wrong while sending your message. Please try again or use WhatsApp.');
+      const result = await sendContactEmail(formData);
+      setIsSendingEmail(false);
+
+      if (result && result.success) {
+        setEmailSuccess(true);
+      } else {
+        let safeError = 'Something went wrong while sending your message. Please try again or use WhatsApp.';
+        if (result && typeof result.error === 'string') {
+          safeError = result.error;
+        } else if (result && result.error && typeof (result.error as any).message === 'string') {
+          safeError = (result.error as any).message;
+        }
+        setEmailError(safeError);
+      }
+    } catch (err: unknown) {
+      setIsSendingEmail(false);
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred while sending your message.';
+      setEmailError(message);
     }
   };
 
@@ -382,7 +398,14 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                   </div>
                 ) : (
                   /* STATE 3: FORM INPUT */
-                  <form className="space-y-5" noValidate>
+                  <form
+                    className="space-y-5"
+                    noValidate
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleEmailSubmit(e);
+                    }}
+                  >
                     
                     {/* Error Banner if Email delivery fails */}
                     {emailError && (
@@ -391,11 +414,23 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                           <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                           <div className="space-y-1">
                             <span className="font-bold text-rose-300 uppercase tracking-wider block">UNABLE TO SEND EMAIL</span>
-                            <p className="text-slate-300 leading-relaxed">{emailError}</p>
+                            <p className="text-slate-300 leading-relaxed">
+                              {typeof emailError === 'string' ? emailError : String(emailError || '')}
+                            </p>
                           </div>
                         </div>
 
                         <div className="pt-2 border-t border-rose-900/50 flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            href={generateGmailWebUrl(formData)}
+                            icon={<Mail className="w-3.5 h-3.5" />}
+                            className="text-xs"
+                          >
+                            OPEN IN GMAIL
+                          </Button>
                           <Button
                             type="button"
                             variant="secondary"

@@ -3,7 +3,6 @@ export const roles: string[] = [
   "Programmer",
   "Graphic Designer",
   "Python Developer",
-  "Music Coach",
   "Musicologist",
   "AI Developer"
 ];
@@ -28,11 +27,6 @@ export const disciplines = [
     title: "Python Developer",
     subtitle: "Automation, scripts, backend logic, and intelligent tools",
     icon: "Terminal"
-  },
-  {
-    title: "Music Coach",
-    subtitle: "Pedagogy, ear training, technique, and creative mentoring",
-    icon: "Headphones"
   },
   {
     title: "Musicologist",

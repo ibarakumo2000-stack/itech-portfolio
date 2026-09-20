@@ -188,9 +188,14 @@ Ibarakumo Owonaro Portfolio`;
   try {
     let { response, data } = await sendRequest(fromEmail);
 
-    // If initial dispatch failed with unverified domain error, retry once with onboarding@resend.dev
-    if (!response.ok && data.message && data.message.includes('not verified') && fromEmail !== 'Portfolio Inquiry <onboarding@resend.dev>') {
-      console.warn(`[EmailService] Custom sender "${fromEmail}" domain not verified on Resend. Retrying automatically with onboarding@resend.dev...`);
+    // If initial dispatch failed (403, unverified domain, or validation issue), retry automatically with onboarding@resend.dev
+    const rawErrorString = JSON.stringify(data).toLowerCase();
+    if (
+      !response.ok &&
+      fromEmail !== 'Portfolio Inquiry <onboarding@resend.dev>' &&
+      (response.status === 403 || rawErrorString.includes('not verified') || rawErrorString.includes('domain'))
+    ) {
+      console.warn(`[EmailService] Custom sender "${fromEmail}" rejected (${response.status}). Retrying automatically with onboarding@resend.dev...`);
       const retryResult = await sendRequest('Portfolio Inquiry <onboarding@resend.dev>');
       response = retryResult.response;
       data = retryResult.data;
@@ -198,10 +203,22 @@ Ibarakumo Owonaro Portfolio`;
 
     if (!response.ok) {
       console.warn('[EmailService] Resend API response status:', response.status, JSON.stringify(data));
-      let errorMessage = data.message || data.error;
+      let errorMessage = '';
+
+      if (typeof data.message === 'string' && data.message) {
+        errorMessage = data.message;
+      } else if (typeof data.error === 'string' && data.error) {
+        errorMessage = data.error;
+      } else if (data.error && typeof data.error === 'object' && 'message' in (data.error as object)) {
+        errorMessage = String((data.error as { message?: unknown }).message || '');
+      } else if (data.name) {
+        errorMessage = `Email service responded with ${data.name}`;
+      }
+
       if (!errorMessage && data.name === 'validation_error') {
         errorMessage = 'Email delivery notice: When using the testing sender onboarding@resend.dev, Resend permits sending only to your registered account email. Please verify your custom domain in Resend or use WhatsApp / Mail Client below.';
       }
+
       return {
         success: false,
         error: errorMessage || `Email delivery failed with status ${response.status}`

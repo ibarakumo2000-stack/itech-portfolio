@@ -22,10 +22,24 @@ export default async function handler(req: any, res: any) {
     });
   }
 
-  // Parse body safely if it arrives as a string or stream
-  if (typeof req.body === 'string') {
+  // Parse body safely if it arrives as a stream, string, or object
+  let body = req.body;
+  if (!body) {
     try {
-      req.body = JSON.parse(req.body);
+      body = await new Promise((resolve) => {
+        let data = '';
+        req.on('data', (chunk: any) => { data += chunk; });
+        req.on('end', () => {
+          try { resolve(JSON.parse(data)); } catch { resolve({}); }
+        });
+        req.on('error', () => resolve({}));
+      });
+    } catch {
+      body = {};
+    }
+  } else if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body);
     } catch {
       return res.status(400).json({
         success: false,
@@ -33,6 +47,7 @@ export default async function handler(req: any, res: any) {
       });
     }
   }
+  req.body = body;
 
   try {
     await handleContactSubmission(req, res);

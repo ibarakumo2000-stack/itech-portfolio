@@ -87,6 +87,18 @@ Email: ${data.email.trim()}`);
   return `mailto:${contactConfig.email}?subject=${subject}&body=${body}`;
 }
 
+export function generateGmailWebUrl(data: ContactFormData): string {
+  const su = encodeURIComponent(`Project Inquiry — ${data.name.trim()}`);
+  const body = encodeURIComponent(`Hi Ibarakumo,
+
+${data.message.trim()}
+
+---
+From: ${data.name.trim()}
+Email: ${data.email.trim()}`);
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(contactConfig.email)}&su=${su}&body=${body}`;
+}
+
 /**
  * Sends the contact inquiry silently to the backend /api/contact endpoint.
  * Works seamlessly with both full-stack Node/Express and Vercel Serverless deployments.
@@ -132,9 +144,18 @@ export async function sendContactEmail(data: ContactFormData): Promise<SendEmail
     }
 
     if (!response.ok) {
+      let errorText = `Server error (${response.status}). Please try WhatsApp or Mail Client below.`;
+      if (typeof responseData.error === 'string' && responseData.error) {
+        errorText = responseData.error;
+      } else if (responseData.error && typeof responseData.error === 'object') {
+        errorText = (responseData.error as { message?: string }).message || JSON.stringify(responseData.error);
+      } else if (typeof responseData.message === 'string' && responseData.message) {
+        errorText = responseData.message;
+      }
+
       return {
         success: false,
-        error: responseData.error || `Server error (${response.status}). Please try WhatsApp or Mail Client.`
+        error: errorText
       };
     }
 

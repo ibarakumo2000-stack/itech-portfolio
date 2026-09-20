@@ -12,18 +12,24 @@ const ipSubmissions = new Map<string, RateLimitRecord>();
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const MAX_SUBMISSIONS_PER_WINDOW = 5;
 
-// Periodically clean up stale IP records every 10 minutes
-setInterval(() => {
+// Clean up stale IP records periodically without maintaining open background timers
+function cleanupStaleIpRecords(): void {
   const now = Date.now();
   for (const [ip, record] of ipSubmissions.entries()) {
     if (now > record.resetTime) {
       ipSubmissions.delete(ip);
     }
   }
-}, 10 * 60 * 1000);
+}
 
 export async function handleContactSubmission(req: Request, res: Response): Promise<void> {
-  const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+  cleanupStaleIpRecords();
+
+  const clientIp = 
+    (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 
+    (req.headers['x-real-ip'] as string) ||
+    req.socket?.remoteAddress || 
+    'unknown';
 
   // 1. Rate Limiting Check
   const now = Date.now();
@@ -111,9 +117,13 @@ export async function handleContactSubmission(req: Request, res: Response): Prom
   });
 
   if (!result.success) {
+    const errorText = typeof result.error === 'string'
+      ? result.error
+      : (result.error ? JSON.stringify(result.error) : 'Failed to dispatch email via email service.');
+
     res.status(502).json({
       success: false,
-      error: result.error || 'Failed to dispatch email via email service.'
+      error: errorText
     });
     return;
   }

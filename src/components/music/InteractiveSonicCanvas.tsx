@@ -13,9 +13,11 @@ const NOTES: Note[] = [
   { name: 'C4', freq: 261.63, label: 'Tonic', interval: '1', keyHint: '1' },
   { name: 'D4', freq: 293.66, label: 'Supertonic', interval: '2', keyHint: '2' },
   { name: 'E4', freq: 329.63, label: 'Mediant', interval: '3', keyHint: '3' },
-  { name: 'G4', freq: 392.00, label: 'Dominant', interval: '5', keyHint: '4' },
-  { name: 'A4', freq: 440.00, label: 'Submediant', interval: '6', keyHint: '5' },
-  { name: 'C5', freq: 523.25, label: 'Octave', interval: '8', keyHint: '6' }
+  { name: 'F4', freq: 349.23, label: 'Subdominant', interval: '4', keyHint: '4' },
+  { name: 'G4', freq: 392.00, label: 'Dominant', interval: '5', keyHint: '5' },
+  { name: 'A4', freq: 440.00, label: 'Submediant', interval: '6', keyHint: '6' },
+  { name: 'B4', freq: 493.88, label: 'Leading Tone', interval: '7', keyHint: '7' },
+  { name: 'C5', freq: 523.25, label: 'Octave', interval: '8', keyHint: '8' }
 ];
 
 export const InteractiveSonicCanvas: React.FC = () => {
@@ -261,7 +263,7 @@ export const InteractiveSonicCanvas: React.FC = () => {
     }
   }, [getAudioContext, timbre]);
 
-  // Play full harmonic arpeggio sequence
+  // Play full harmonic arpeggio sequence (Full Scale Cadence: C D E F G A B C)
   const handlePlayArpeggio = () => {
     if (isPlayingArpeggio) {
       arpeggioTimeoutRef.current.forEach(clearTimeout);
@@ -272,8 +274,18 @@ export const InteractiveSonicCanvas: React.FC = () => {
     }
 
     setIsPlayingArpeggio(true);
-    const sequence = [NOTES[0], NOTES[2], NOTES[3], NOTES[4], NOTES[5], NOTES[3], NOTES[0]];
-    const intervalTime = 320;
+    // Full scale cadence sequence: C, D, E, F, G, A, B, C
+    const sequence = [
+      NOTES[0], // C4
+      NOTES[1], // D4
+      NOTES[2], // E4
+      NOTES[3], // F4
+      NOTES[4], // G4
+      NOTES[5], // A4
+      NOTES[6], // B4
+      NOTES[7]  // C5
+    ];
+    const intervalTime = 300;
 
     sequence.forEach((note, index) => {
       const timeout = setTimeout(() => {
@@ -299,11 +311,15 @@ export const InteractiveSonicCanvas: React.FC = () => {
         '4': NOTES[3],
         '5': NOTES[4],
         '6': NOTES[5],
+        '7': NOTES[6],
+        '8': NOTES[7],
         c: NOTES[0],
         d: NOTES[1],
         e: NOTES[2],
-        g: NOTES[3],
-        a: NOTES[4]
+        f: NOTES[3],
+        g: NOTES[4],
+        a: NOTES[5],
+        b: NOTES[6]
       };
 
       const matchedNote = noteMap[e.key.toLowerCase()];
@@ -329,7 +345,7 @@ export const InteractiveSonicCanvas: React.FC = () => {
             </h4>
           </div>
           <p className="text-xs text-slate-400 font-mono mt-0.5">
-            Click notes or use keys (1–6) to synthesize harmonic overtone frequencies
+            Click notes or use keys (1–8 or C–B) to synthesize full scale cadence frequencies (C D E F G A B C)
           </p>
         </div>
 
@@ -345,7 +361,7 @@ export const InteractiveSonicCanvas: React.FC = () => {
             }`}
           >
             {isPlayingArpeggio ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-            <span>{isPlayingArpeggio ? 'Stop Cadence' : 'Play Cadence'}</span>
+            <span>{isPlayingArpeggio ? 'Stop Cadence' : 'Play Full Cadence (C–C)'}</span>
           </button>
 
           {/* Sound Toggle */}
@@ -397,15 +413,15 @@ export const InteractiveSonicCanvas: React.FC = () => {
         </div>
       </div>
 
-      {/* Note Triggers Grid */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+      {/* Note Triggers Grid: Full Diatonic Cadence Scale (C D E F G A B C) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
         {NOTES.map((note) => {
           const isActive = activeNote === note.name;
           return (
             <button
               key={note.name}
               onClick={() => playHarmonicTone(note)}
-              className={`p-3.5 sm:p-4 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer select-none ${
+              className={`p-3 sm:p-3.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all duration-200 cursor-pointer select-none ${
                 isActive
                   ? 'bg-rose-500/25 border-rose-400 text-white scale-95 shadow-lg shadow-rose-500/20'
                   : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:bg-slate-800 hover:border-slate-700 hover:text-white'
@@ -415,9 +431,9 @@ export const InteractiveSonicCanvas: React.FC = () => {
                 <span className="text-[10px] font-mono text-slate-400">[{note.keyHint}]</span>
                 <span className="text-[10px] font-mono text-cyan-400">{note.interval}°</span>
               </div>
-              <span className="text-lg font-bold font-mono text-white">{note.name}</span>
-              <span className="text-[10px] uppercase font-mono text-slate-400">{note.label}</span>
-              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-black/50 text-cyan-300">
+              <span className="text-base sm:text-lg font-bold font-mono text-white">{note.name}</span>
+              <span className="text-[9px] uppercase font-mono text-slate-400 truncate max-w-full">{note.label}</span>
+              <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-black/50 text-cyan-300">
                 {note.freq.toFixed(0)} Hz
               </span>
             </button>
@@ -431,9 +447,9 @@ export const InteractiveSonicCanvas: React.FC = () => {
           <Music2 className="w-3.5 h-3.5 text-rose-400" />
           <span>Active Cadence:</span>
         </span>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto py-1">
           {recentSequence.length === 0 ? (
-            <span className="text-slate-400 italic">Click notes or keys 1–6</span>
+            <span className="text-slate-400 italic">Click notes or keys 1–8</span>
           ) : (
             recentSequence.map((n, i) => (
               <span
